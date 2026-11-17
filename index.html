@@ -1,0 +1,737 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#111522">
+  <title>星燼學院：符文試煉</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --ink: #f3eddf;
+      --muted: #aaa9b7;
+      --panel: rgba(25, 29, 46, .92);
+      --line: rgba(223, 208, 170, .18);
+      --gold: #f1cf83;
+      --teal: #88e0d1;
+      --rose: #ff8e9d;
+      --violet: #c2a5ff;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      min-width: 320px;
+      min-height: 100vh;
+      margin: 0;
+      color: var(--ink);
+      font-family: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+      background:
+        radial-gradient(ellipse at 50% -10%, rgba(119, 90, 163, .32), transparent 50%),
+        radial-gradient(ellipse at 10% 70%, rgba(50, 105, 121, .2), transparent 40%),
+        #10131e;
+    }
+
+    button { font: inherit; }
+
+    .shell {
+      width: min(1120px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 26px 0 42px;
+    }
+
+    .topbar, .brand, .top-meta, .combat-head, .combatants, .fighter-top,
+    .status-row, .question-top, .spell-line, .footer-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .topbar { margin-bottom: 20px; }
+    .brand { justify-content: flex-start; gap: 12px; }
+    .crest {
+      display: grid;
+      width: 44px;
+      height: 44px;
+      place-items: center;
+      border: 1px solid rgba(241, 207, 131, .55);
+      border-radius: 14px 14px 14px 4px;
+      color: var(--gold);
+      background: linear-gradient(145deg, rgba(241, 207, 131, .17), rgba(122, 91, 174, .16));
+      font-size: 24px;
+    }
+
+    .brand h1 { margin: 0; font-size: clamp(18px, 3vw, 23px); letter-spacing: .08em; }
+    .brand p { margin: 4px 0 0; color: var(--muted); font-size: 12px; letter-spacing: .12em; }
+    .top-meta { justify-content: flex-end; color: var(--muted); font-size: 13px; }
+    .top-meta span { white-space: nowrap; }
+    .top-meta strong { color: var(--gold); font-variant-numeric: tabular-nums; }
+
+    .game-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.45fr) minmax(320px, .9fr);
+      align-items: stretch;
+      gap: 18px;
+    }
+
+    .panel {
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      background: var(--panel);
+      box-shadow: 0 18px 48px rgba(0, 0, 0, .22);
+    }
+
+    .battle-panel { display: flex; flex-direction: column; min-height: 535px; }
+    .combat-head { padding: 16px 20px; border-bottom: 1px solid var(--line); }
+    .eyebrow { color: var(--muted); font-size: 11px; letter-spacing: .15em; }
+    .round-label { color: var(--gold); font-size: 13px; }
+    .arena {
+      position: relative;
+      display: grid;
+      min-height: 280px;
+      flex: 1;
+      place-items: center;
+      overflow: hidden;
+      background: linear-gradient(180deg, rgba(34, 39, 62, .5), rgba(16, 20, 32, .82));
+    }
+
+    .arena::before {
+      position: absolute;
+      inset: 0;
+      background-image: radial-gradient(rgba(242, 222, 169, .45) .7px, transparent .9px);
+      background-size: 31px 31px;
+      opacity: .27;
+      content: "";
+      mask-image: linear-gradient(to bottom, black, transparent 90%);
+    }
+
+    canvas { position: absolute; width: 100%; height: 100%; inset: 0; }
+    .arena-caption {
+      position: absolute;
+      right: 18px;
+      bottom: 12px;
+      left: 18px;
+      color: rgba(243, 237, 223, .55);
+      font-size: 11px;
+      letter-spacing: .12em;
+      text-align: center;
+      pointer-events: none;
+    }
+
+    .combatants {
+      position: absolute;
+      z-index: 1;
+      right: 7%;
+      bottom: 43px;
+      left: 7%;
+      align-items: flex-end;
+      pointer-events: none;
+    }
+
+    .fighter { width: min(37%, 220px); }
+    .fighter-top { gap: 6px; margin-bottom: 7px; font-size: 12px; }
+    .fighter-top strong { font-size: 13px; font-weight: 600; }
+    .tag {
+      padding: 3px 7px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--gold);
+      font-size: 10px;
+      white-space: nowrap;
+    }
+    .meter {
+      height: 7px;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 99px;
+      background: rgba(8, 10, 17, .75);
+    }
+    .meter > span {
+      display: block;
+      width: 100%;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, #5fcbb7, #a5eed4);
+      transition: width .45s ease;
+    }
+    .enemy-meter > span { background: linear-gradient(90deg, #e5687f, #ffb282); }
+    .mp-meter { height: 4px; margin-top: 5px; }
+    .mp-meter > span { background: linear-gradient(90deg, #8e73d8, #c0aaff); }
+    .fighter .numbers { margin-top: 4px; color: var(--muted); font-size: 10px; text-align: right; }
+    .fighter.enemy .numbers { text-align: left; }
+    .enemy { text-align: right; }
+    .status-row { padding: 13px 20px; border-top: 1px solid var(--line); }
+    .status-stat { color: var(--muted); font-size: 12px; }
+    .status-stat strong { margin-left: 5px; color: var(--ink); font-size: 14px; }
+    .weakness-key { color: var(--muted); font-size: 11px; text-align: right; }
+    .weakness-key b { color: var(--gold); }
+
+    .quiz-panel { display: flex; flex-direction: column; padding: 22px; }
+    .quiz-panel h2 { margin: 0; font-size: 19px; line-height: 1.5; }
+    .question-top { margin-bottom: 14px; }
+    .question-index { color: var(--muted); font-size: 12px; }
+    .spell-line { justify-content: flex-start; margin: 16px 0 20px; }
+    .spell-icon {
+      display: grid;
+      width: 38px;
+      height: 38px;
+      place-items: center;
+      border: 1px solid currentColor;
+      border-radius: 12px;
+      background: rgba(255,255,255,.04);
+      font-size: 20px;
+    }
+    .spell-icon.fire { color: #ff9a76; }
+    .spell-icon.water { color: #7bc5ff; }
+    .spell-icon.wind { color: #8fe2ba; }
+    .spell-copy { color: var(--muted); font-size: 11px; line-height: 1.6; }
+    .spell-copy strong { display: block; color: var(--ink); font-size: 13px; }
+    .choices { display: grid; gap: 9px; }
+    .choice {
+      display: flex;
+      width: 100%;
+      min-height: 48px;
+      align-items: center;
+      gap: 11px;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      color: var(--ink);
+      background: rgba(255,255,255,.025);
+      cursor: pointer;
+      text-align: left;
+      transition: border-color .16s ease, background .16s ease, transform .16s ease;
+    }
+    .choice:hover:not(:disabled), .choice:focus-visible {
+      transform: translateY(-1px);
+      border-color: rgba(241, 207, 131, .7);
+      background: rgba(241, 207, 131, .08);
+      outline: none;
+    }
+    .choice:disabled { cursor: default; opacity: .76; }
+    .choice .letter {
+      display: grid;
+      width: 25px;
+      height: 25px;
+      flex: 0 0 auto;
+      place-items: center;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      color: var(--gold);
+      font-size: 11px;
+    }
+    .choice.correct { border-color: rgba(136,224,209,.75); background: rgba(136,224,209,.1); }
+    .choice.wrong { border-color: rgba(255,142,157,.65); background: rgba(255,142,157,.09); }
+    .hint {
+      min-height: 45px;
+      margin-top: 14px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.7;
+    }
+    .hint.good { color: var(--teal); }
+    .hint.bad { color: #ffadad; }
+    .footer-row { margin-top: auto; padding-top: 12px; }
+    .mana-note { color: var(--muted); font-size: 11px; line-height: 1.6; }
+    .mana-note strong { color: var(--violet); }
+    .action-button, .restart-button {
+      min-height: 42px;
+      padding: 0 16px;
+      border: 1px solid rgba(241, 207, 131, .55);
+      border-radius: 12px;
+      color: #201b17;
+      background: linear-gradient(135deg, #f3d996, #d6ae64);
+      cursor: pointer;
+      font-weight: 700;
+      transition: filter .16s ease, transform .16s ease;
+    }
+    .action-button:hover:not(:disabled), .restart-button:hover { transform: translateY(-1px); filter: brightness(1.08); }
+    .action-button:disabled { cursor: not-allowed; filter: grayscale(.6); opacity: .55; }
+    .action-button:focus-visible, .restart-button:focus-visible { outline: 2px solid white; outline-offset: 3px; }
+    .start-screen, .end-screen {
+      position: absolute;
+      z-index: 3;
+      inset: 0;
+      display: grid;
+      padding: 24px;
+      place-items: center;
+      background: rgba(12, 15, 25, .75);
+      text-align: center;
+      backdrop-filter: blur(5px);
+    }
+    .start-card { max-width: 360px; }
+    .seal { color: var(--gold); font-size: 34px; }
+    .start-card h2 { margin: 10px 0 8px; font-size: 23px; letter-spacing: .08em; }
+    .start-card p { margin: 0 0 20px; color: #c4c0c6; font-size: 13px; line-height: 1.9; }
+    .hidden { display: none !important; }
+    .toast {
+      position: absolute;
+      z-index: 2;
+      top: 26%;
+      left: 50%;
+      color: var(--gold);
+      font-size: clamp(18px, 4vw, 28px);
+      font-weight: 800;
+      text-shadow: 0 2px 15px rgba(0,0,0,.8);
+      transform: translateX(-50%);
+      pointer-events: none;
+      animation: rise .95s ease forwards;
+    }
+    @keyframes rise { to { opacity: 0; transform: translate(-50%, -40px) scale(1.12); } }
+    .guide {
+      margin-top: 18px;
+      padding: 15px 19px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      color: var(--muted);
+      background: rgba(25, 29, 46, .58);
+      font-size: 12px;
+      line-height: 1.9;
+    }
+    .guide strong { color: var(--ink); }
+    .guide .elements { color: var(--gold); }
+
+    @media (max-width: 760px) {
+      .shell { width: min(100% - 22px, 600px); padding-top: 17px; }
+      .topbar { align-items: flex-start; }
+      .top-meta { flex-direction: column; align-items: flex-end; gap: 5px; }
+      .game-grid { grid-template-columns: 1fr; gap: 12px; }
+      .battle-panel { min-height: 390px; }
+      .arena { min-height: 245px; }
+      .quiz-panel { padding: 19px; }
+      .guide { margin-top: 12px; }
+    }
+
+    @media (max-width: 420px) {
+      .brand p { font-size: 10px; }
+      .crest { width: 38px; height: 38px; }
+      .top-meta { font-size: 11px; }
+      .status-row { padding: 12px; }
+      .weakness-key { max-width: 150px; }
+      .combatants { right: 5%; left: 5%; }
+      .fighter { width: 42%; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="crest" aria-hidden="true">✦</div>
+        <div>
+          <h1>星燼學院：符文試煉</h1>
+          <p>夜航圖書塔・見習術士考核</p>
+        </div>
+      </div>
+      <div class="top-meta" aria-label="冒險進度">
+        <span>試煉 <strong id="stage-label">—</strong></span>
+        <span>連擊 <strong id="combo-label">0</strong></span>
+        <span>分數 <strong id="score-label">0</strong></span>
+      </div>
+    </header>
+
+    <div class="game-grid">
+      <section class="panel battle-panel" aria-label="戰鬥場景">
+        <div class="combat-head">
+          <span class="eyebrow">符文交鋒 / RUNE DUEL</span>
+          <span class="round-label" id="battle-message">準備進入試煉</span>
+        </div>
+        <div class="arena" id="arena">
+          <canvas id="battle-canvas" aria-label="術士與魔物的原創繪製戰鬥場景"></canvas>
+          <div class="combatants">
+            <div class="fighter player">
+              <div class="fighter-top"><strong>見習術士・星芽</strong><span class="tag">你</span></div>
+              <div class="meter" aria-label="生命值"><span id="player-hp-bar"></span></div>
+              <div class="meter mp-meter" aria-label="魔力值"><span id="player-mp-bar"></span></div>
+              <div class="numbers"><span id="player-hp-text">—</span> HP　<span id="player-mp-text">—</span> MP</div>
+            </div>
+            <div class="fighter enemy">
+              <div class="fighter-top"><span class="tag" id="enemy-element">—</span><strong id="enemy-name">未知魔物</strong></div>
+              <div class="meter enemy-meter" aria-label="敵方生命值"><span id="enemy-hp-bar"></span></div>
+              <div class="numbers"><span id="enemy-hp-text">—</span> HP</div>
+            </div>
+          </div>
+          <div class="arena-caption" id="arena-caption">墨色星塵在古老符文間流轉</div>
+          <div class="start-screen" id="start-screen">
+            <div class="start-card">
+              <div class="seal" aria-hidden="true">◈</div>
+              <h2>塔頂的試煉已敞開</h2>
+              <p>答對符文謎題，施展元素咒術；觀察魔物的屬性，善用相剋之力突破三場試煉。</p>
+              <button class="action-button" id="start-button" type="button">開始試煉</button>
+            </div>
+          </div>
+          <div class="end-screen hidden" id="end-screen">
+            <div class="start-card">
+              <div class="seal" id="end-seal" aria-hidden="true">✧</div>
+              <h2 id="end-title">試煉完成</h2>
+              <p id="end-copy"></p>
+              <button class="restart-button" id="restart-button" type="button">再次挑戰</button>
+            </div>
+          </div>
+        </div>
+        <div class="status-row">
+          <div class="status-stat">本場得分<strong id="battle-score">0</strong></div>
+          <div class="weakness-key"><b>相剋提示</b>　🔥火 ＞ 🌿風　💧水 ＞ 🔥火　🌿風 ＞ 💧水</div>
+        </div>
+      </section>
+
+      <section class="panel quiz-panel" aria-labelledby="question-title">
+        <div class="question-top">
+          <span class="eyebrow">知識符文 / QUIZ RUNE</span>
+          <span class="question-index" id="question-index">等待開始</span>
+        </div>
+        <h2 id="question-title">預備好迎接第一道謎題了嗎？</h2>
+        <div class="spell-line">
+          <div class="spell-icon fire" id="spell-icon" aria-hidden="true">✹</div>
+          <div class="spell-copy"><strong id="spell-name">火花咒</strong><span id="spell-detail">答對即可施展　・　消耗 8 MP</span></div>
+        </div>
+        <div class="choices" id="choices" role="group" aria-label="選擇答案"></div>
+        <div class="hint" id="feedback" aria-live="polite">每道題目都會指引一種元素咒術。答錯時，魔物將趁隙反擊。</div>
+        <div class="footer-row">
+          <div class="mana-note">魔力不足時仍可施展<br><strong>微光彈</strong>，但威力較弱。</div>
+          <button class="action-button" id="continue-button" type="button" disabled>等待作答</button>
+        </div>
+      </section>
+    </div>
+
+    <aside class="guide">
+      <strong>試煉筆記：</strong>選擇正確答案發動題目指定的元素法術；答錯則失去連擊並承受敵方攻擊。擊倒魔物可恢復生命與魔力。<span class="elements"> 火克風、風克水、水克火。</span>三場戰鬥後結算成績。
+    </aside>
+  </main>
+
+  <script>
+    "use strict";
+
+    const elements = {
+      fire: { name: "火", icon: "🔥", spell: "焰星咒", className: "fire", strongAgainst: "wind" },
+      water: { name: "水", icon: "💧", spell: "潮汐咒", className: "water", strongAgainst: "fire" },
+      wind: { name: "風", icon: "🌿", spell: "青嵐咒", className: "wind", strongAgainst: "water" }
+    };
+
+    const enemies = [
+      { name: "霧苔小靈", element: "wind", hp: 46, attack: 10, shape: "wisp", color: "#78d6bb" },
+      { name: "燭角石像", element: "fire", hp: 61, attack: 13, shape: "golem", color: "#f18d72" },
+      { name: "深潮夢鰩", element: "water", hp: 78, attack: 15, shape: "ray", color: "#7bb7f4" }
+    ];
+
+    const questions = [
+      { text: "臺灣最高的山峰是哪一座？", choices: ["玉山", "雪山", "秀姑巒山", "南湖大山"], answer: 0, element: "fire", explain: "玉山主峰海拔 3,952 公尺，是臺灣最高峰。" },
+      { text: "水在標準大氣壓下的沸點是幾度？", choices: ["90°C", "100°C", "110°C", "120°C"], answer: 1, element: "water", explain: "標準大氣壓下，水的沸點是 100°C。" },
+      { text: "哪一顆行星以明顯的光環聞名？", choices: ["火星", "金星", "土星", "水星"], answer: 2, element: "wind", explain: "土星擁有由冰粒與岩石碎屑構成的醒目光環。" },
+      { text: "一年通常有幾個月？", choices: ["10 個月", "11 個月", "12 個月", "13 個月"], answer: 2, element: "fire", explain: "一年分為 12 個月。" },
+      { text: "植物行光合作用時，主要吸收哪種氣體？", choices: ["氧氣", "二氧化碳", "氮氣", "氦氣"], answer: 1, element: "water", explain: "植物吸收二氧化碳，並利用光能製造養分。" },
+      { text: "臺灣常用的貨幣名稱是什麼？", choices: ["日圓", "港元", "新臺幣", "韓元"], answer: 2, element: "wind", explain: "臺灣使用的貨幣是新臺幣。" },
+      { text: "三角形的內角和是多少度？", choices: ["90 度", "180 度", "270 度", "360 度"], answer: 1, element: "fire", explain: "平面幾何中的三角形內角和為 180 度。" },
+      { text: "哪一種動物是哺乳類？", choices: ["海龜", "青蛙", "蝙蝠", "鱷魚"], answer: 2, element: "water", explain: "蝙蝠是會飛行的哺乳動物。" },
+      { text: "臺灣位於哪一個海峽的東側？", choices: ["臺灣海峽", "英吉利海峽", "麻六甲海峽", "白令海峽"], answer: 0, element: "wind", explain: "臺灣位於臺灣海峽東側，與中國大陸相望。" },
+      { text: "光從太陽到達地球大約需要多久？", choices: ["8 分鐘", "8 秒鐘", "1 小時", "1 天"], answer: 0, element: "fire", explain: "陽光約需 8 分 20 秒抵達地球。" },
+      { text: "「春眠不覺曉」出自哪一首詩？", choices: ["靜夜思", "春曉", "登鸛雀樓", "詠鵝"], answer: 1, element: "water", explain: "「春眠不覺曉」是孟浩然〈春曉〉的首句。" },
+      { text: "一公尺等於幾公分？", choices: ["10 公分", "50 公分", "100 公分", "1,000 公分"], answer: 2, element: "wind", explain: "一公尺等於 100 公分。" }
+    ];
+
+    const state = {
+      active: false, finished: false, stage: 0, playerHp: 100, maxHp: 100,
+      playerMp: 32, maxMp: 40, score: 0, combo: 0, question: null,
+      answered: false, questionsUsed: 0, enemyHp: 0, particles: [], animation: 0,
+      attackFlash: 0
+    };
+
+    const $ = (id) => document.getElementById(id);
+    const canvas = $("battle-canvas");
+    const ctx = canvas.getContext("2d");
+    const choiceBox = $("choices");
+    const continueButton = $("continue-button");
+    const spellCost = 8;
+    const letters = ["Ａ", "Ｂ", "Ｃ", "Ｄ"];
+
+    function resizeCanvas() {
+      const rect = canvas.getBoundingClientRect();
+      const ratio = Math.min(window.devicePixelRatio || 1, 2);
+      canvas.width = Math.max(1, Math.round(rect.width * ratio));
+      canvas.height = Math.max(1, Math.round(rect.height * ratio));
+      ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+      drawArena();
+    }
+
+    function drawMage(x, y, scale) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.scale(scale, scale);
+      ctx.shadowColor = "rgba(151, 129, 234, .6)";
+      ctx.shadowBlur = 20;
+      ctx.fillStyle = "#b7a4ef";
+      ctx.beginPath();
+      ctx.moveTo(-25, 28); ctx.lineTo(-19, -4); ctx.lineTo(0, -18);
+      ctx.lineTo(19, -4); ctx.lineTo(25, 28); ctx.closePath(); ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = "#26233b";
+      ctx.beginPath(); ctx.ellipse(0, 2, 13, 16, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "#f1d8b8";
+      ctx.beginPath(); ctx.arc(0, -3, 10, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "#433651";
+      ctx.beginPath(); ctx.moveTo(-12, -6); ctx.lineTo(0, -27); ctx.lineTo(13, -6); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = "#f1cf83";
+      ctx.beginPath(); ctx.arc(0, 7, 2.5, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = "#f3d996"; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(20, 9); ctx.lineTo(32, -17); ctx.stroke();
+      ctx.fillStyle = "#fff0bc";
+      ctx.beginPath(); ctx.arc(32, -19, 3, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+    }
+
+    function drawEnemy(x, y, scale, time) {
+      const foe = enemies[Math.min(state.stage, enemies.length - 1)] || enemies[0];
+      ctx.save();
+      ctx.translate(x, y + Math.sin(time / 650) * 4);
+      ctx.scale(scale, scale);
+      ctx.shadowColor = foe.color;
+      ctx.shadowBlur = 24;
+      ctx.fillStyle = foe.color;
+      if (foe.shape === "wisp") {
+        ctx.beginPath();
+        ctx.moveTo(0, -24); ctx.bezierCurveTo(32, -16, 27, 15, 13, 23);
+        ctx.quadraticCurveTo(0, 16, -12, 24); ctx.bezierCurveTo(-31, 8, -24, -18, 0, -24); ctx.fill();
+      } else if (foe.shape === "golem") {
+        ctx.beginPath();
+        ctx.moveTo(-22, -19); ctx.lineTo(18, -22); ctx.lineTo(28, 12);
+        ctx.lineTo(12, 25); ctx.lineTo(-23, 18); ctx.closePath(); ctx.fill();
+      } else {
+        ctx.beginPath();
+        ctx.moveTo(-32, 0); ctx.quadraticCurveTo(-3, -28, 29, -7);
+        ctx.quadraticCurveTo(7, 1, 29, 14); ctx.quadraticCurveTo(-4, 29, -32, 0); ctx.fill();
+      }
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = "#24243a";
+      ctx.beginPath(); ctx.arc(-7, -2, 2.5, 0, Math.PI * 2); ctx.arc(8, -2, 2.5, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "#fff0ca";
+      ctx.beginPath(); ctx.arc(-7, -3, 1, 0, Math.PI * 2); ctx.arc(8, -3, 1, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+    }
+
+    function drawArena() {
+      const width = canvas.clientWidth;
+      const height = canvas.clientHeight;
+      if (!width || !height) return;
+      ctx.clearRect(0, 0, width, height);
+      const glow = ctx.createRadialGradient(width * .5, height * .63, 8, width * .5, height * .63, width * .47);
+      glow.addColorStop(0, "rgba(126, 103, 167, .18)");
+      glow.addColorStop(1, "rgba(126, 103, 167, 0)");
+      ctx.fillStyle = glow; ctx.fillRect(0, 0, width, height);
+      ctx.strokeStyle = "rgba(241, 207, 131, .09)";
+      ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.ellipse(width * .5, height * .78, width * .37, height * .12, 0, 0, Math.PI * 2); ctx.stroke();
+      ctx.beginPath(); ctx.ellipse(width * .5, height * .78, width * .25, height * .075, 0, 0, Math.PI * 2); ctx.stroke();
+      drawMage(width * .27, height * .62, Math.min(1, width / 560));
+      drawEnemy(width * .73, height * .56, Math.min(1, width / 560), state.animation);
+
+      for (const p of state.particles) {
+        ctx.globalAlpha = Math.max(0, p.life / p.maxLife);
+        ctx.fillStyle = p.color;
+        ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+      if (state.attackFlash > 0) {
+        ctx.fillStyle = `rgba(255, 115, 129, ${state.attackFlash / 32})`;
+        ctx.fillRect(0, 0, width, height);
+      }
+    }
+
+    function animate(time) {
+      state.animation = time;
+      for (const p of state.particles) {
+        p.x += p.vx; p.y += p.vy; p.life--;
+      }
+      state.particles = state.particles.filter((p) => p.life > 0);
+      state.attackFlash = Math.max(0, state.attackFlash - 1);
+      drawArena();
+      requestAnimationFrame(animate);
+    }
+
+    function burst(color, fromPlayer) {
+      const w = canvas.clientWidth, h = canvas.clientHeight;
+      const x = w * (fromPlayer ? .27 : .73), y = h * .53;
+      for (let i = 0; i < 22; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 1 + Math.random() * 3.2;
+        state.particles.push({ x, y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed,
+          size: 2 + Math.random() * 3, life: 22 + Math.random() * 20, maxLife: 42, color });
+      }
+    }
+
+    function showToast(text) {
+      const old = document.querySelector(".toast");
+      if (old) old.remove();
+      const toast = document.createElement("div");
+      toast.className = "toast";
+      toast.textContent = text;
+      $("arena").append(toast);
+      window.setTimeout(() => toast.remove(), 1000);
+    }
+
+    function updateStatus() {
+      const enemy = enemies[Math.min(state.stage, enemies.length - 1)];
+      $("stage-label").textContent = state.stage < enemies.length ? `${state.stage + 1} / ${enemies.length}` : "完成";
+      $("combo-label").textContent = state.combo;
+      $("score-label").textContent = state.score;
+      $("battle-score").textContent = state.score;
+      $("player-hp-text").textContent = `${Math.max(0, state.playerHp)} / ${state.maxHp}`;
+      $("player-mp-text").textContent = `${state.playerMp} / ${state.maxMp}`;
+      $("player-hp-bar").style.width = `${Math.max(0, state.playerHp) / state.maxHp * 100}%`;
+      $("player-mp-bar").style.width = `${state.playerMp / state.maxMp * 100}%`;
+      if (enemy && state.stage < enemies.length) {
+        $("enemy-name").textContent = enemy.name;
+        $("enemy-element").textContent = `${elements[enemy.element].icon} ${elements[enemy.element].name}屬性`;
+        $("enemy-hp-text").textContent = `${Math.max(0, state.enemyHp)} / ${enemy.hp}`;
+        $("enemy-hp-bar").style.width = `${Math.max(0, state.enemyHp) / enemy.hp * 100}%`;
+      }
+    }
+
+    function setQuestion() {
+      if (!state.active || state.finished) return;
+      const question = questions[Math.floor(Math.random() * questions.length)];
+      state.question = question;
+      state.answered = false;
+      state.questionsUsed++;
+      const element = elements[question.element];
+      $("question-title").textContent = question.text;
+      $("question-index").textContent = `第 ${state.questionsUsed} 道符文`;
+      $("spell-icon").className = `spell-icon ${element.className}`;
+      $("spell-icon").textContent = element.icon;
+      $("spell-name").textContent = element.spell;
+      $("spell-detail").textContent = `答對即可施展　・　消耗 ${spellCost} MP`;
+      $("feedback").className = "hint";
+      $("feedback").textContent = "謹慎思考，選擇你的答案。";
+      continueButton.disabled = true;
+      continueButton.textContent = "等待作答";
+      choiceBox.replaceChildren();
+      question.choices.forEach((choice, index) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "choice";
+        button.innerHTML = `<span class="letter">${letters[index]}</span><span>${choice}</span>`;
+        button.addEventListener("click", () => answerQuestion(index));
+        choiceBox.append(button);
+      });
+      $("battle-message").textContent = "符文正在低語";
+    }
+
+    function answerQuestion(index) {
+      if (!state.active || state.answered || !state.question) return;
+      state.answered = true;
+      const buttons = [...choiceBox.querySelectorAll("button")];
+      buttons.forEach((button) => { button.disabled = true; });
+      const correct = index === state.question.answer;
+      const feedback = $("feedback");
+
+      if (correct) {
+        state.combo++;
+        const enemy = enemies[state.stage];
+        const weak = elements[state.question.element].strongAgainst === enemy.element;
+        const enoughMana = state.playerMp >= spellCost;
+        const baseDamage = enoughMana ? 21 : 11;
+        const damage = Math.round((baseDamage + Math.min(state.combo - 1, 4) * 2) * (weak ? 1.65 : 1));
+        if (enoughMana) state.playerMp -= spellCost;
+        state.enemyHp = Math.max(0, state.enemyHp - damage);
+        state.score += 100 + (weak ? 50 : 0) + Math.min(state.combo - 1, 4) * 10;
+        buttons[index].classList.add("correct");
+        burst(enoughMana ? elements[state.question.element].className === "fire" ? "#ff9d72" :
+          elements[state.question.element].className === "water" ? "#7bc5ff" : "#8fe2ba" : "#c2a5ff", true);
+        showToast(weak ? `弱點命中！ −${damage}` : `符文命中！ −${damage}`);
+        feedback.className = "hint good";
+        const countered = state.enemyHp > 0;
+        if (countered) {
+          state.playerHp = Math.max(0, state.playerHp - enemy.attack);
+          state.attackFlash = 24;
+          burst("#ff8e9d", false);
+        }
+        feedback.textContent = `${state.question.explain}${weak ? " 屬性相剋，威力大幅提升！" : ""}${!enoughMana ? " 魔力不足，改以微光彈攻擊。" : ""}${countered ? ` 魔物回合：反擊造成 ${enemy.attack} 點傷害。` : ""}`;
+        $("battle-message").textContent = weak ? "精準擊中弱點！" : "咒術命中";
+      } else {
+        state.combo = 0;
+        state.playerHp = Math.max(0, state.playerHp - enemies[state.stage].attack);
+        state.playerMp = Math.min(state.maxMp, state.playerMp + 3);
+        buttons[index].classList.add("wrong");
+        buttons[state.question.answer].classList.add("correct");
+        feedback.className = "hint bad";
+        feedback.textContent = `答錯了。${state.question.explain} 魔物反擊，你失去 ${enemies[state.stage].attack} 點生命；回復 3 點魔力。`;
+        $("battle-message").textContent = "魔物趁隙反擊";
+        state.attackFlash = 24;
+        burst("#ff8e9d", false);
+      }
+      updateStatus();
+      continueButton.disabled = false;
+      continueButton.textContent = "繼續試煉";
+
+      if (state.enemyHp <= 0) {
+        $("battle-message").textContent = "魔物已被擊退";
+        $("arena-caption").textContent = "符文微光散落在古老石階之上";
+      }
+      if (state.playerHp <= 0) {
+        continueButton.textContent = "查看結果";
+        $("battle-message").textContent = "星芽的魔力耗盡了";
+      }
+    }
+
+    function nextTurn() {
+      if (!state.active || !state.answered) return;
+      if (state.playerHp <= 0) {
+        finish(false);
+        return;
+      }
+      if (state.enemyHp <= 0) {
+        state.score += 150;
+        state.playerHp = Math.min(state.maxHp, state.playerHp + 18);
+        state.playerMp = Math.min(state.maxMp, state.playerMp + 12);
+        state.stage++;
+        if (state.stage >= enemies.length) {
+          updateStatus();
+          finish(true);
+          return;
+        }
+        state.enemyHp = enemies[state.stage].hp;
+        $("arena-caption").textContent = `試煉 ${state.stage + 1}：新的魔物踏入符文陣`;
+        updateStatus();
+      }
+      setQuestion();
+    }
+
+    function finish(victory) {
+      state.active = false;
+      state.finished = true;
+      $("end-screen").classList.remove("hidden");
+      $("end-title").textContent = victory ? "星火照亮塔頂" : "試煉暫告一段落";
+      $("end-seal").textContent = victory ? "✧" : "◌";
+      $("end-copy").textContent = victory
+        ? `你以 ${state.questionsUsed} 道符文完成三場戰鬥，累積 ${state.score} 分。星燼學院正式授予你見習術士的星徽！`
+        : `你完成了 ${state.stage} 場戰鬥，累積 ${state.score} 分。整理筆記、補足魔力，再來挑戰塔頂吧。`;
+      continueButton.disabled = true;
+      updateStatus();
+    }
+
+    function startGame() {
+      state.active = true; state.finished = false; state.stage = 0;
+      state.playerHp = state.maxHp; state.playerMp = 32;
+      state.score = 0; state.combo = 0; state.questionsUsed = 0;
+      state.enemyHp = enemies[0].hp; state.particles = [];
+      $("start-screen").classList.add("hidden");
+      $("end-screen").classList.add("hidden");
+      $("arena-caption").textContent = "墨色星塵在古老符文間流轉";
+      updateStatus();
+      setQuestion();
+    }
+
+    $("start-button").addEventListener("click", startGame);
+    $("restart-button").addEventListener("click", startGame);
+    continueButton.addEventListener("click", nextTurn);
+    window.addEventListener("resize", resizeCanvas);
+    resizeCanvas();
+    requestAnimationFrame(animate);
+  </script>
+</body>
+</html>
