@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#101b25">
+<title>霧境前線｜星垣守望</title>
+<style>
+  :root{color-scheme:dark;--ink:#edf2e8;--muted:#a9b5b1;--panel:rgba(17,29,37,.94);--line:rgba(196,215,196,.16);--gold:#edc77b;--mint:#9ed7b1;--red:#ee806f}
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;background:#101b25;color:var(--ink);font:14px/1.45 system-ui,-apple-system,"Segoe UI","Noto Sans TC",sans-serif}
+  button{font:inherit;color:inherit}
+  .shell{max-width:1600px;margin:auto;padding:16px clamp(10px,2vw,28px) 22px}
+  header{display:flex;justify-content:space-between;align-items:center;gap:14px;margin-bottom:12px}
+  .brand{display:flex;align-items:center;gap:12px}.sigil{width:42px;height:42px;border:1px solid #89bca0;border-radius:13px;display:grid;place-items:center;color:#bde3bf;font-size:23px;background:linear-gradient(145deg,#244538,#172d31);box-shadow:0 0 24px #6fb58a20}
+  h1{font-size:clamp(18px,2.4vw,27px);line-height:1.15;letter-spacing:.08em;margin:0}.subtitle{color:var(--muted);font-size:12px;margin-top:3px}
+  .top-actions{display:flex;gap:8px}.quiet,.speed{border:1px solid var(--line);background:#1b2b34;border-radius:9px;padding:8px 12px;cursor:pointer}.quiet:hover,.speed:hover{border-color:#8bbca0}
+  .resources{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 11px}.resource{display:flex;gap:8px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:7px 12px;min-width:105px}.resource b{font-variant-numeric:tabular-nums;font-size:15px}.resource span:last-child{color:var(--muted);font-size:11px}
+  .gameframe{position:relative;border:1px solid #607c7090;border-radius:13px;overflow:hidden;background:#162529;box-shadow:0 16px 55px #0005}
+  canvas{display:block;width:100%;height:min(66vh,680px);min-height:360px;touch-action:none;cursor:crosshair}
+  .banner{position:absolute;inset:0;display:grid;place-items:center;background:#101b25c9;backdrop-filter:blur(5px);z-index:5;padding:20px}
+  .banner.hidden{display:none}.card{width:min(510px,100%);text-align:center;padding:clamp(20px,5vw,36px);border:1px solid #9cc6a65c;border-radius:17px;background:linear-gradient(145deg,#1c3438f5,#17252df5);box-shadow:0 20px 70px #0008}
+  .eyebrow{color:var(--gold);font-size:11px;letter-spacing:.22em;text-transform:uppercase}.card h2{font-size:clamp(24px,5vw,37px);letter-spacing:.12em;margin:9px 0}.card p{color:#c3d0c8;line-height:1.8;margin:8px auto 20px;max-width:390px}
+  .primary{border:0;border-radius:9px;background:linear-gradient(135deg,#b9deaa,#81bd9b);color:#142a27;font-weight:800;letter-spacing:.08em;padding:11px 22px;cursor:pointer}.primary:hover{filter:brightness(1.08);transform:translateY(-1px)}
+  .gamebar{display:grid;grid-template-columns:1fr minmax(190px,280px);gap:10px;margin-top:10px}
+  .panel{border:1px solid var(--line);border-radius:10px;background:var(--panel);padding:10px 12px;min-height:70px}
+  .panel-head{display:flex;justify-content:space-between;align-items:center;color:var(--muted);font-size:11px;letter-spacing:.12em;text-transform:uppercase;margin-bottom:7px}
+  .actions{display:flex;gap:7px;flex-wrap:wrap}
+  .action{border:1px solid #8eaa9a40;background:#24363a;border-radius:7px;padding:6px 10px;cursor:pointer;font-size:12px}
+  .action:hover:not(:disabled),.action.active{border-color:var(--mint);background:#315148;color:#e8f4dc}.action:disabled{opacity:.42;cursor:not-allowed}
+  .selection{color:#dbe5dc;font-size:13px}.selection small{display:block;color:var(--muted);margin-top:3px}
+  .statusline{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-top:9px;color:var(--muted);font-size:11px}
+  #message{color:#d8e6d7;min-height:18px}.legend{display:flex;gap:13px;white-space:nowrap}.dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px}
+  .howto{color:#aebbb6;font-size:12px;line-height:1.75;margin:10px 2px 0}.howto strong{color:#dce7dc}
+  @media(max-width:680px){.shell{padding:10px}.brand{gap:9px}.sigil{width:36px;height:36px}.subtitle{display:none}.top-actions{gap:5px}.quiet,.speed{padding:7px 9px;font-size:12px}.resource{min-width:0;flex:1;padding:6px 8px;gap:5px}.gamebar{grid-template-columns:1fr;gap:7px}.panel{min-height:60px}canvas{height:54vh;min-height:330px}.statusline{align-items:flex-start;flex-direction:column;gap:4px}.legend{gap:9px}}
+</style>
+</head>
+<body>
+<main class="shell">
+  <header>
+    <div class="brand"><div class="sigil">✦</div><div><h1>霧境前線</h1><div class="subtitle">星垣守望 · 即時戰略生存</div></div></div>
+    <div class="top-actions"><button class="speed" id="speedBtn" title="切換遊戲速度">速度 ×1</button><button class="quiet" id="restartBtn">重新部署</button></div>
+  </header>
+  <section class="resources" aria-label="資源">
+    <div class="resource"><span>▰</span><b id="wood">0</b><span>木料</span></div>
+    <div class="resource"><span>◇</span><b id="crystal">0</b><span>星晶</span></div>
+    <div class="resource"><span>◉</span><b id="population">0/0</b><span>人口</span></div>
+    <div class="resource"><span>⌛</span><b id="clock">00:00</b><span>前線時間</span></div>
+  </section>
+  <section class="gameframe">
+    <canvas id="field" aria-label="霧境前線遊戲地圖"></canvas>
+    <div class="banner" id="intro">
+      <div class="card"><div class="eyebrow">霧海紀元 · 第七遠征隊</div><h2>星垣守望</h2>
+        <p>灰霧吞沒了舊航道。帶領最後的拓荒者，採集星晶、建立前哨，並摧毀北境的掠霧核心，為失聯的殖民船隊點亮歸途。</p>
+        <button class="primary" id="startBtn">開始遠征</button>
+      </div>
+    </div>
+    <div class="banner hidden" id="result">
+      <div class="card"><div class="eyebrow" id="resultEyebrow">遠征紀錄</div><h2 id="resultTitle"></h2><p id="resultText"></p><button class="primary" id="againBtn">再次部署</button></div>
+    </div>
+  </section>
+  <section class="gamebar">
+    <div class="panel"><div class="panel-head"><span>指揮面板</span><span id="context">選取單位或建築</span></div><div class="actions" id="actions"></div></div>
+    <div class="panel"><div class="panel-head"><span>目標資訊</span><span id="hpLabel"></span></div><div class="selection" id="selection">星垣基地已待命<small>建立軍營、集結隊伍，摧毀敵方掠霧核心。</small></div></div>
+  </section>
+  <div class="statusline"><span id="message">遠征開始後，選取拓荒者並以滑鼠右鍵指定採集或移動。</span><span class="legend"><span><i class="dot" style="background:#8fc6a2"></i>我方</span><span><i class="dot" style="background:#e47f70"></i>敵方</span><span>⚙ 建築</span></span></div>
+  <p class="howto"><strong>操作：</strong>點選單位／建築；右鍵下達移動、攻擊或採集指令（觸控可點選單位後點目標）。建築按鈕進入放置模式；軍營可訓練守衛。摧毀敵方核心即可獲勝，星垣基地被毀則遠征失敗。</p>
+</main>
+<script>
+(() => {
+  "use strict";
+  const canvas = document.getElementById("field");
+  const ctx = canvas.getContext("2d");
+  const $ = id => document.getElementById(id);
+  const TILE = 48, COLS = 20, ROWS = 13, W = TILE * COLS, H = TILE * ROWS;
+  const COST = {worker:{wood:0,crystal:0},guard:{wood:35,crystal:18},barracks:{wood:75,crystal:25},turret:{wood:48,crystal:36},relay:{wood:65,crystal:55}};
+  const BUILDING = {hq:{name:"星垣基地",w:2,h:2,hp:520,color:"#87b7a0"},barracks:{name:"守望軍營",w:2,h:2,hp:300,color:"#a6aa79"},turret:{name:"脈衝塔",w:1,h:1,hp:190,color:"#86a9ae"},relay:{name:"星晶中繼站",w:1,h:1,hp:220,color:"#8eb6ad"},beacon:{name:"掠霧核心",w:2,h:2,hp:420,color:"#bc6e67"}};
+  let state, lastTime=0, elapsed=0, raf, speed=1, mode=null, messageTimer=0;
+  let scale=1, offsetX=0, offsetY=0;
+
+  function reset(){
+    cancelAnimationFrame(raf);
+    state={running:false,ended:false,wood:145,crystal:105,units:[],buildings:[],nodes:[],selected:null,nextId:1,spawnTimer:30,production:null,workerTimer:0,score:0};
+    elapsed=0;mode=null;speed=1;
+    state.buildings.push(makeBuilding("hq",2,9,"blue"),makeBuilding("beacon",16,1,"red"));
+    state.units.push(makeUnit("worker",5,10,"blue"),makeUnit("guard",7,10,"blue"),makeUnit("raider",15,3,"red"),makeUnit("raider",17,4,"red"));
+    const patches=[["wood",2,2,6],["wood",7,4,4],["wood",11,10,5],["crystal",5,6,3],["crystal",13,6,4],["crystal",9,2,3],["wood",18,8,4]];
+    for(const [type,x,y,n] of patches)for(let i=0;i<n;i++){const dx=(i%3)-1,dy=Math.floor(i/3);state.nodes.push({type,x:x+dx,y:y+dy,amount:type==="wood"?5:4});}
+    $("intro").classList.remove("hidden");$("result").classList.add("hidden");$("actions").innerHTML="";$("selection").innerHTML='星垣基地已待命<small>建立軍營、集結隊伍，摧毀敵方掠霧核心。</small>';
+    $("context").textContent="選取單位或建築";$("hpLabel").textContent="";$("message").textContent="遠征開始後，選取拓荒者並以滑鼠右鍵指定採集或移動。";
+    renderHud();draw();
+  }
+  function makeBuilding(type,x,y,team){return{id:state.nextId++,kind:"building",type,x,y,team,hp:BUILDING[type].hp,maxHp:BUILDING[type].hp,cooldown:0,damage:type==="turret"?22:0,range:type==="turret"?4:0};}
+  function makeUnit(type,x,y,team){const data={worker:[75,0,1.05,0],guard:[125,15,1.1,5],raider:[105,13,1.05,5] }[type];return{id:state.nextId++,kind:"unit",type,x:x*TILE+TILE/2,y:y*TILE+TILE/2,team,hp:data[0],maxHp:data[0],damage:data[1],speed:data[2],range:data[3],cooldown:0,order:null,carry:0};}
+  function start(){if(state.ended)return;state.running=true;$("intro").classList.add("hidden");lastTime=performance.now();raf=requestAnimationFrame(loop);say("遠征開始。拓荒者可採集木料與星晶，右鍵下達指令。");}
+  function say(text){$("message").textContent=text;messageTimer=4;}
+  function loop(now){if(!state.running)return;const dt=Math.min(.05,(now-lastTime)/1000)*speed;lastTime=now;elapsed+=dt;update(dt);draw();renderHud();raf=requestAnimationFrame(loop);}
+  function update(dt){
+    if(messageTimer>0)messageTimer-=dt;
+    for(const u of state.units){u.cooldown=Math.max(0,u.cooldown-dt);if(u.order?.type==="gather")updateGather(u,dt);else if(u.order?.type==="move")moveTo(u,u.order.x,u.order.y,dt);else if(u.type!=="worker")combat(u,dt);}
+    for(const b of state.buildings){if(b.team==="blue"&&b.type==="turret"){b.cooldown=Math.max(0,b.cooldown-dt);combat(b,dt);}if(b.team==="blue"&&b.type==="barracks"&&b.queue){b.queue.time-=dt;if(b.queue.time<=0){const spot=nearbyEmpty(b.x,b.y);if(spot)state.units.push(makeUnit("guard",spot.x,spot.y,"blue"));b.queue=null;say("守衛已完成訓練。");}}}
+    state.spawnTimer-=dt;if(state.spawnTimer<=0){state.spawnTimer=38;const core=state.buildings.find(b=>b.type==="beacon");if(core){const enemyCount=state.units.filter(u=>u.team==="red").length;if(enemyCount<9){const raider=makeUnit("raider",core.x-1,core.y+3,"red");raider.order={type:"attack",target:state.buildings.find(b=>b.team==="blue"&&b.type==="hq")?.id};state.units.push(raider);say("霧海偵測到敵方增援！");}}}
+    for(const u of state.units.filter(u=>u.team==="red"&&u.type!=="worker")){if(!u.order||u.order.type==="attack"&&!findById(u.order.target)){const target=nearest(u,state.buildings.filter(b=>b.team==="blue"));if(target)u.order={type:"attack",target:target.id};}}
+    state.units=state.units.filter(u=>u.hp>0);state.buildings=state.buildings.filter(b=>b.hp>0);
+    const hq=state.buildings.find(b=>b.type==="hq"&&b.team==="blue"),core=state.buildings.find(b=>b.type==="beacon");
+    if(!hq)finish(false);else if(!core)finish(true);
+  }
+  function updateGather(u,dt){const node=u.order.node;if(!node||node.amount<=0){u.order=null;return;}const tx=node.x*TILE+TILE/2,ty=node.y*TILE+TILE/2;if(Math.hypot(tx-u.x,ty-u.y)>25){moveTo(u,tx,ty,dt);return;}u.order.work=(u.order.work||0)+dt;if(u.order.work>=1.15){u.order.work=0;node.amount--;if(node.type==="wood")state.wood+=8;else state.crystal+=7;if(node.amount<=0)u.order=null;}}
+  function moveTo(u,x,y,dt){const dx=x-u.x,dy=y-u.y,d=Math.hypot(dx,dy);if(d<7){u.order=null;return;}const step=Math.min(d,u.speed*TILE*dt);u.x+=dx/d*step;u.y+=dy/d*step;}
+  function combat(unit,dt){
+    const source=unit.kind==="building"?{...unit,x:(unit.x+.5)*TILE,y:(unit.y+.5)*TILE}:unit;
+    let target=unit.order?.type==="attack"?findById(unit.order.target):null;
+    if(!target||target.team===unit.team){target=nearest(source,[...state.units,...state.buildings].filter(e=>e.team!==unit.team));}
+    if(!target)return;
+    const size=target.kind==="unit"?null:BUILDING[target.type];
+    const tx=target.kind==="unit"?target.x:(target.x+size.w/2)*TILE,ty=target.kind==="unit"?target.y:(target.y+size.h/2)*TILE;
+    const dist=Math.hypot(tx-source.x,ty-source.y),range=(unit.range||4)*TILE;
+    if(dist>range+14){if(unit.kind==="unit")moveTo(unit,tx,ty,dt);return;}
+    if(unit.cooldown<=0){target.hp-=unit.damage||12;unit.cooldown=unit.team==="blue"?.72:.92;state.score++;}
+  }
+  function nearest(from,targets){let best=null,dist=Infinity;for(const t of targets){const x=t.kind==="unit"?t.x:(t.x+1)*TILE,y=t.kind==="unit"?t.y:(t.y+1)*TILE,d=Math.hypot(x-from.x,y-from.y);if(d<dist){dist=d;best=t;}}return best;}
+  function findById(id){return [...state.units,...state.buildings].find(e=>e.id===id);}
+  function finish(won){if(state.ended)return;state.ended=true;state.running=false;$("result").classList.remove("hidden");$("resultEyebrow").textContent=won?"遠征成功":"訊號中斷";$("resultTitle").textContent=won?"星火重燃":"星垣失守";$("resultText").textContent=won?`掠霧核心已沉寂。遠征隊堅守了 ${formatTime(elapsed)}，為失聯船隊重新點亮航標。`:`星垣基地遭到摧毀，前線訊號於 ${formatTime(elapsed)} 中斷。整備隊伍後即可再次出發。`;}
+  function formatTime(t){return`${String(Math.floor(t/60)).padStart(2,"0")}:${String(Math.floor(t%60)).padStart(2,"0")}`;}
+  function renderHud(){$("wood").textContent=Math.floor(state.wood);$("crystal").textContent=Math.floor(state.crystal);$("population").textContent=`${state.units.filter(u=>u.team==="blue").length}/${state.buildings.filter(b=>b.team==="blue").length*5+5}`;$("clock").textContent=formatTime(elapsed);$("speedBtn").textContent=`速度 ×${speed}`;if(state.selected){const alive=[...state.units,...state.buildings].includes(state.selected);if(!alive){state.selected=null;renderSelection();}else{$("hpLabel").textContent=`${Math.max(0,Math.ceil(state.selected.hp))}/${state.selected.maxHp}`;if(state.selected.kind==="building"&&state.selected.queue){$("selection").innerHTML=`守望軍營<small>訓練中：星衛 ${Math.max(0,Math.ceil(state.selected.queue.time))} 秒</small>`;}}}}
+  function dprResize(){const r=canvas.getBoundingClientRect(),dpr=Math.max(1,window.devicePixelRatio||1);canvas.width=Math.round(r.width*dpr);canvas.height=Math.round(r.height*dpr);scale=Math.min(canvas.width/W,canvas.height/H);offsetX=(canvas.width-W*scale)/2;offsetY=(canvas.height-H*scale)/2;draw();}
+  function draw(){
+    if(!ctx)return;const cw=canvas.width,ch=canvas.height;if(!cw||!ch)return;ctx.setTransform(1,0,0,1,0,0);ctx.fillStyle="#132329";ctx.fillRect(0,0,cw,ch);ctx.setTransform(scale,0,0,scale,offsetX,offsetY);
+    ctx.fillStyle="#223b36";ctx.fillRect(0,0,W,H);
+    for(let y=0;y<ROWS;y++)for(let x=0;x<COLS;x++){const px=x*TILE,py=y*TILE;const shade=((x*7+y*13)%5)*2;ctx.fillStyle=`rgb(${35+shade},${61+shade},${52+shade})`;ctx.fillRect(px,py,TILE,TILE);ctx.strokeStyle="#b6cba00a";ctx.strokeRect(px,py,TILE,TILE);if((x*13+y*3)%11===0){ctx.fillStyle="#a6c38b44";ctx.beginPath();ctx.arc(px+12+(x%3)*8,py+13,1.4,0,Math.PI*2);ctx.fill();}}
+    drawDecor();
+    for(const n of state.nodes)drawNode(n);
+    for(const b of state.buildings)drawBuilding(b);
+    for(const u of state.units)drawUnit(u);
+    if(mode?.type==="build"){const p=pointerTile(mode.pointerX,mode.pointerY);if(p){const data=BUILDING[mode.building];ctx.fillStyle=canPlace(mode.building,p.x,p.y)?"#9ddaa055":"#e8786666";ctx.fillRect(p.x*TILE,p.y*TILE,data.w*TILE,data.h*TILE);ctx.strokeStyle="#e3e7d8aa";ctx.strokeRect(p.x*TILE,p.y*TILE,data.w*TILE,data.h*TILE);}}
+  }
+  function drawDecor(){for(let i=0;i<17;i++){const x=((i*73+44)%W),y=((i*119+38)%H);ctx.fillStyle="#b4c39a18";ctx.beginPath();ctx.ellipse(x,y,9,3,-.4,0,Math.PI*2);ctx.fill();}}
+  function drawNode(n){const x=n.x*TILE+24,y=n.y*TILE+25;if(n.type==="wood"){ctx.fillStyle="#254536";ctx.beginPath();ctx.arc(x,y+3,12,0,Math.PI*2);ctx.fill();ctx.fillStyle="#568865";ctx.beginPath();ctx.arc(x-2,y-3,10,0,Math.PI*2);ctx.fill();ctx.fillStyle="#8cae77";ctx.fillRect(x-1,y+4,3,7);}else{ctx.fillStyle="#5b7d7a";ctx.beginPath();ctx.moveTo(x,y-12);ctx.lineTo(x+8,y-2);ctx.lineTo(x+6,y+9);ctx.lineTo(x-7,y+9);ctx.lineTo(x-9,y);ctx.closePath();ctx.fill();ctx.fillStyle="#a3e1cf";ctx.beginPath();ctx.moveTo(x-1,y-8);ctx.lineTo(x+3,y-1);ctx.lineTo(x,y+4);ctx.lineTo(x-3,y);ctx.closePath();ctx.fill();}}
+  function drawBuilding(b){const d=BUILDING[b.type],x=b.x*TILE,y=b.y*TILE,w=d.w*TILE,h=d.h*TILE;ctx.save();ctx.fillStyle=b.team==="blue"?"#345d51":"#653a3a";ctx.strokeStyle=b.team==="blue"?"#a4d5aa":"#f0927e";ctx.lineWidth=2;roundRect(x+3,y+3,w-6,h-6,9);ctx.fill();ctx.stroke();ctx.fillStyle=b.team==="blue"?d.color:"#d17a69";ctx.globalAlpha=.2;roundRect(x+8,y+8,w-16,h-16,6);ctx.fill();ctx.globalAlpha=1;
+    if(b.type==="hq"){ctx.fillStyle="#d8e8bd";ctx.beginPath();ctx.moveTo(x+w/2,y+7);ctx.lineTo(x+w-9,y+h/2);ctx.lineTo(x+w/2,y+h-8);ctx.lineTo(x+9,y+h/2);ctx.closePath();ctx.fill();ctx.fillStyle="#456b60";ctx.beginPath();ctx.arc(x+w/2,y+h/2,8,0,Math.PI*2);ctx.fill();}
+    else if(b.type==="beacon"){ctx.fillStyle="#ffb28a";ctx.beginPath();ctx.arc(x+w/2,y+h/2,13+Math.sin(elapsed*3)*2,0,Math.PI*2);ctx.fill();ctx.fillStyle="#713f45";ctx.beginPath();ctx.arc(x+w/2,y+h/2,7,0,Math.PI*2);ctx.fill();}
+    else if(b.type==="turret"||b.type==="relay"){ctx.fillStyle=b.type==="relay"?"#c5e7cc":"#d3e2be";ctx.beginPath();ctx.arc(x+w/2,y+h/2,8,0,Math.PI*2);ctx.fill();ctx.fillRect(x+w/2-2,y+5,4,15);}
+    else{ctx.fillStyle="#d7dfb3";ctx.fillRect(x+15,y+12,w-30,7);ctx.fillRect(x+21,y+24,w-42,6);}
+    healthBar(x,y-5,w,b.hp/b.maxHp,b.team);if(state.selected?.id===b.id){ctx.strokeStyle="#f1df99";ctx.lineWidth=2;ctx.strokeRect(x,y,w,h);}ctx.restore();}
+  function drawUnit(u){const r=u.type==="worker"?8:10;ctx.save();ctx.fillStyle=u.team==="blue"?"#75ae8e":"#d77668";ctx.strokeStyle=u.team==="blue"?"#d1ebbe":"#ffd0a1";ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(u.x,u.y,r,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.fillStyle="#192e32";ctx.beginPath();ctx.arc(u.x,u.y-1,3.3,0,Math.PI*2);ctx.fill();if(u.type!=="worker"){ctx.strokeStyle="#e8e4c0";ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(u.x+5,u.y-6);ctx.lineTo(u.x+11,u.y-10);ctx.stroke();}healthBar(u.x-r,u.y-r-6,r*2,u.hp/u.maxHp,u.team);if(state.selected?.id===u.id){ctx.strokeStyle="#f1df99";ctx.setLineDash([3,3]);ctx.beginPath();ctx.arc(u.x,u.y,r+5,0,Math.PI*2);ctx.stroke();ctx.setLineDash([]);}ctx.restore();}
+  function healthBar(x,y,w,p,team){ctx.fillStyle="#121a19";ctx.fillRect(x,y,w,4);ctx.fillStyle=team==="blue"?"#9fd99e":"#ed8475";ctx.fillRect(x,y,w*Math.max(0,p),4);}
+  function roundRect(x,y,w,h,r){ctx.beginPath();ctx.roundRect(x,y,w,h,r);}
+  function resize(){dprResize();}
+  function coords(event){const r=canvas.getBoundingClientRect();return{x:(event.clientX-r.left)*canvas.width/r.width,y:(event.clientY-r.top)*canvas.height/r.height};}
+  function worldPoint(event){const p=coords(event);return{x:(p.x-offsetX)/scale,y:(p.y-offsetY)/scale};}
+  function pointerTile(clientX,clientY){const p=worldPoint({clientX,clientY});return p.x>=0&&p.y>=0&&p.x<W&&p.y<H?{x:Math.floor(p.x/TILE),y:Math.floor(p.y/TILE)}:null;}
+  function hitAt(p){for(let i=state.units.length-1;i>=0;i--){const u=state.units[i];if(Math.hypot(u.x-p.x,u.y-p.y)<14)return u;}for(let i=state.buildings.length-1;i>=0;i--){const b=state.buildings[i],d=BUILDING[b.type];if(p.x>=b.x*TILE&&p.x<(b.x+d.w)*TILE&&p.y>=b.y*TILE&&p.y<(b.y+d.h)*TILE)return b;}return null;}
+  function nodeAt(tile){return state.nodes.find(n=>n.x===tile.x&&n.y===tile.y&&n.amount>0);}
+  canvas.addEventListener("pointermove",e=>{if(mode?.type==="build"){mode.pointerX=e.clientX;mode.pointerY=e.clientY;draw();}});
+  canvas.addEventListener("contextmenu",e=>{e.preventDefault();if(!state.running)return;const p=worldPoint(e),tile=pointerTile(e.clientX,e.clientY);if(!tile)return;issueOrder(p,tile);});
+  canvas.addEventListener("pointerdown",e=>{if(!state.running||e.button!==0)return;const p=worldPoint(e),tile=pointerTile(e.clientX,e.clientY);if(!tile)return;
+    if(mode?.type==="build"){placeBuilding(tile.x,tile.y);return;}
+    const target=hitAt(p);
+    if(target){if(state.selected?.team==="blue"&&state.selected.kind==="unit"&&target.team==="red"){state.selected.order={type:"attack",target:target.id};say("攻擊目標已標記。");return;}select(target);return;}
+    const node=nodeAt(tile);
+    if(node&&state.selected?.team==="blue"&&state.selected.type==="worker"){state.selected.order={type:"gather",node};say(node.type==="wood"?"拓荒者前往採集木料。":"拓荒者前往採集星晶。");return;}
+    if(state.selected?.team==="blue"&&state.selected.kind==="unit"){state.selected.order={type:"move",x:p.x,y:p.y};say("移動指令已下達。");}
+  });
+  function issueOrder(p,tile){const picked=state.selected;if(!picked||picked.team!=="blue"||picked.kind!=="unit"){select(hitAt(p));return;}const target=hitAt(p);if(target?.team==="red"){picked.order={type:"attack",target:target.id};say("攻擊目標已標記。");return;}const node=nodeAt(tile);if(node&&picked.type==="worker"){picked.order={type:"gather",node};say(node.type==="wood"?"拓荒者前往採集木料。":"拓荒者前往採集星晶。");}else{picked.order={type:"move",x:p.x,y:p.y};say("移動指令已下達。");}}
+  function select(entity){state.selected=entity;mode=null;renderSelection();draw();}
+  function renderSelection(){const e=state.selected;if(!e){$("context").textContent="選取單位或建築";$("hpLabel").textContent="";$("selection").innerHTML='星垣基地已待命<small>建立軍營、集結隊伍，摧毀敵方掠霧核心。</small>';$("actions").innerHTML="";return;}
+    $("context").textContent=e.team==="blue"?"我方":"敵方";$("hpLabel").textContent=`${Math.max(0,Math.ceil(e.hp))}/${e.maxHp}`;$("selection").innerHTML=`${e.kind==="building"?BUILDING[e.type].name:({worker:"拓荒者",guard:"星衛",raider:"掠霧者"}[e.type])}<small>${e.kind==="building"?(e.type==="barracks"?(e.queue?`訓練中：星衛 ${Math.max(0,Math.ceil(e.queue.time))} 秒`:"可訓練星衛"):"防禦設施"):(e.type==="worker"?(e.order?.type==="gather"?"正在採集資源":"可採集與建造"):e.order?.type==="attack"?"進攻目標":"待命")}</small>`;
+    renderActions(e);
+  }
+  function renderActions(e){const area=$("actions");area.innerHTML="";if(e.team!=="blue")return;
+    if(e.type==="hq"){addAction("訓練拓荒者",()=>trainWorker(),false,"免費；人口 +1");addAction("建造軍營",()=>setBuild("barracks"),false,"木料 75 · 星晶 25");addAction("建造脈衝塔",()=>setBuild("turret"),false,"木料 48 · 星晶 36");addAction("建造星晶中繼站",()=>setBuild("relay"),false,"木料 65 · 星晶 55");}
+    else if(e.type==="barracks"){addAction(e.queue?"訓練中…":"訓練星衛",()=>trainGuard(e),!!e.queue,"木料 35 · 星晶 18");}
+    else if(e.type==="worker"){addAction("移動指令",()=>{mode={type:"move"};say("點擊地面指定移動位置。");},false,"也可直接右鍵點擊地面");addAction("建造軍營",()=>setBuild("barracks"),false,"木料 75 · 星晶 25");addAction("建造脈衝塔",()=>setBuild("turret"),false,"木料 48 · 星晶 36");addAction("建造星晶中繼站",()=>setBuild("relay"),false,"木料 65 · 星晶 55");}
+    else addAction("移動指令",()=>{mode={type:"move"};say("點擊地面指定移動位置。");},false,"右鍵點擊目標可發動攻擊");
+  }
+  function addAction(label,fn,disabled=false,title=""){const b=document.createElement("button");b.className="action";b.textContent=label;b.disabled=disabled;b.title=title;b.onclick=fn;$("actions").appendChild(b);}
+  function setBuild(type){if(!afford(COST[type])){say("資源不足，請先派拓荒者採集。");return;}mode={type:"build",building:type,pointerX:0,pointerY:0};say(`選擇位置：${BUILDING[type].name}。點擊空地建造，按 Esc 取消。`);draw();}
+  function afford(c){return state.wood>=c.wood&&state.crystal>=c.crystal;}
+  function canPlace(type,x,y){const d=BUILDING[type];if(x<0||y<0||x+d.w>COLS||y+d.h>ROWS)return false;for(const b of state.buildings){const o=BUILDING[b.type];if(x<b.x+o.w&&x+d.w>b.x&&y<b.y+o.h&&y+d.h>b.y)return false;}for(const n of state.nodes)if(n.amount>0&&n.x>=x&&n.x<x+d.w&&n.y>=y&&n.y<y+d.h)return false;return true;}
+  function placeBuilding(x,y){const type=mode.building,c=COST[type];if(!afford(c)){say("資源不足，建造取消。");mode=null;return;}if(!canPlace(type,x,y)){say("此處無法建造，請選擇空地。");return;}state.wood-=c.wood;state.crystal-=c.crystal;const b=makeBuilding(type,x,y,"blue");state.buildings.push(b);mode=null;select(b);say(`${BUILDING[type].name}已部署。`);}
+  function trainWorker(){const count=state.units.filter(u=>u.team==="blue").length,pop=state.buildings.filter(b=>b.team==="blue").length*5+5;if(count>=pop){say("人口已滿，請建造更多設施。");return;}const hq=state.buildings.find(b=>b.type==="hq"&&b.team==="blue");if(hq){const p=nearbyEmpty(hq.x,hq.y);if(p){state.units.push(makeUnit("worker",p.x,p.y,"blue"));say("新拓荒者已加入遠征隊。");}}}
+  function trainGuard(b){if(!afford(COST.guard)){say("訓練星衛需要木料 35、星晶 18。");return;}state.wood-=COST.guard.wood;state.crystal-=COST.guard.crystal;b.queue={time:9};renderSelection();}
+  function nearbyEmpty(x,y){for(let r=1;r<5;r++)for(let dy=-r;dy<=r;dy++)for(let dx=-r;dx<=r;dx++){const tx=x+dx,ty=y+dy;if(tx<0||ty<0||tx>=COLS||ty>=ROWS)continue;const busy=state.buildings.some(b=>{const d=BUILDING[b.type];return tx>=b.x&&tx<b.x+d.w&&ty>=b.y&&ty<b.y+d.h;})||state.units.some(u=>Math.floor(u.x/TILE)===tx&&Math.floor(u.y/TILE)===ty);if(!busy)return{x:tx,y:ty};}return null;}
+  document.addEventListener("keydown",e=>{if(e.key==="Escape"&&mode){mode=null;say("已取消指令。");draw();}if(e.key===" "&&state.running){e.preventDefault();speed=speed===1?2:1;$("speedBtn").textContent=`速度 ×${speed}`;}});
+  $("startBtn").onclick=start;$("againBtn").onclick=()=>{reset();start();};$("restartBtn").onclick=()=>{reset();start();};$("speedBtn").onclick=()=>{speed=speed===1?2:1;$("speedBtn").textContent=`速度 ×${speed}`;};
+  window.addEventListener("resize",resize);window.addEventListener("orientationchange",resize);
+  reset();resize();
+})();
+</script>
+</body>
+</html>
